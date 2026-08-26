@@ -41,6 +41,30 @@
     padding: 24px 8px 64px;
   }
 
+  /* ---- 左右並びレイアウトの追加 ---- */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* スマホ等は1列（縦並び） */
+    gap: 20px;
+    align-items: start;
+    margin-bottom: 20px;
+  }
+
+  @media (min-width: 860px) {
+    .main-grid {
+      grid-template-columns: 1fr 1fr; /* PCサイズで左右（2列）並び */
+    }
+  }
+
+  /* 左右並び時の余白調整 */
+  .input-section {
+    display: flex;
+    flex-direction: column;
+  }
+  .hint {
+    margin: 6px 0 0 2px; /* 提示位置の微調整 */
+  }
+
   .wrap { width:100%; max-width: 1400px; }
 
   header{
@@ -147,12 +171,13 @@
   .input-row textarea:focus{
     border-color: var(--ink);
   }
-  .input-row .btn-col{
+  .btn-col{
     display:flex;
-    flex-direction:column;
+    align-items:flex-start;
     gap:8px;
+    margin-bottom: 10px;
   }
-  .input-row button{
+  .btn-col button{
     font-family: var(--sans);
     font-weight:600;
     font-size: 13px;
@@ -164,7 +189,7 @@
     cursor:pointer;
     white-space:nowrap;
   }
-  .input-row button.secondary{
+  .btn-col button.secondary{
     background: var(--paper-raised);
     color: var(--ink);
   }
@@ -457,21 +482,30 @@
     </div>
   </header>
 
-  <div class="type-tabs" id="typeTabs"></div>
+  <div class="main-grid">
+    <div class="input-section">
+      <div class="type-tabs" id="typeTabs"></div>
 
-  <div class="input-row">
-    <textarea id="manualInput" autocomplete="off" rows="3"></textarea>
-    <div class="btn-col">
-      <button id="submitBtn" class="secondary">一括登録</button>
-      <button id="readClipboardBtn">貼り付け</button>
+      <div class="input-row">
+        <textarea id="manualInput" autocomplete="off" rows="3"></textarea>
+      </div>
+      <div class="hint" id="hintText"></div>
+
+      <div class="btn-col">
+        <button id="submitBtn" class="secondary">一括登録</button>
+        <button id="readClipboardBtn">貼り付け</button>
+      </div>
+
+      <div class="toast" id="toast"></div>
+    </div>
+
+    <div class="output-section">
+
+      <div id="cardArea"></div>
+      <div class="torn"></div>
+
     </div>
   </div>
-  <div class="hint" id="hintText"></div>
-
-  <div class="toast" id="toast"></div>
-
-  <div id="cardArea"></div>
-  <div class="torn"></div>
 
   <div class="history-head">
     <h2>履歴</h2>
@@ -806,9 +840,10 @@
 
     var top = document.createElement("div");
     top.className = "card-top";
+    var lenUnit = (latestType.kind === "code39" || latestType.kind === "ascii") ? "文字" : "桁";
     top.innerHTML =
       '<span class="badge">' + latestType.label + '</span>' +
-      '<span class="timestamp">' + formatTime(latest.ts) + '</span>';
+      '<span class="timestamp">' + latest.code.length + lenUnit + ' ・ ' + formatTime(latest.ts) + '</span>';
     card.appendChild(top);
 
     var stage = document.createElement("div");
@@ -849,9 +884,10 @@
 
       var meta = document.createElement("div");
       meta.className = "meta";
+      var lenUnit = (entryType.kind === "code39" || entryType.kind === "ascii") ? "文字" : "桁";
       meta.innerHTML =
         '<span class="type">' + entryType.tabLabel + '</span>' +
-        '<span>' + formatTime(entry.ts) + '</span>';
+        '<span>' + entry.code.length + lenUnit + ' ・ ' + formatTime(entry.ts) + '</span>';
       rowTop.appendChild(meta);
 
       var actions = document.createElement("div");
@@ -899,8 +935,20 @@
 
   function formatTime(ts){
     var d = new Date(ts);
+    var now = new Date();
     var pad = function(n){ return String(n).padStart(2,"0"); };
-    return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+    
+    var isToday = d.getFullYear() === now.getFullYear() &&
+                  d.getMonth() === now.getMonth() &&
+                  d.getDate() === now.getDate();
+
+    var timeStr = pad(d.getHours()) + ":" + pad(d.getMinutes());
+
+    if (isToday) {
+      return timeStr;
+    } else {
+      return pad(d.getMonth() + 1) + "/" + pad(d.getDate()) + " " + timeStr;
+    }
   }
 
   function copyText(text, btn, labelWhenIcon){
