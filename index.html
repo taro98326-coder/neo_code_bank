@@ -647,24 +647,117 @@
   function randomDigit(){ return Math.floor(Math.random() * 10); }
   function randomFromCharset(charset){ return charset[Math.floor(Math.random() * charset.length)]; }
 
-  function expandWildcards(str, typeId){
+  // "?" 1文字ぶんのランダム値(その規格のデフォルト文字種から1文字)。
+  // UPC-Eの先頭桁(Number System)は0/1のみ有効なため、position(生成済み
+  // 出力の長さ)が0の時だけ0/1に限定する。
+  function randomCharForType(typeId, position){
     var type = BARCODE_TYPES[typeId];
-    var chars = str.split("");
-    for(var i=0;i<chars.length;i++){
-      if(chars[i] !== "?") continue;
-      if(type.kind === "upce-fixed" && i === 0){
-        chars[i] = Math.random() < 0.5 ? "0" : "1";
-      }else if(type.kind === "numeric-fixed" || type.kind === "upce-fixed"){
-        chars[i] = String(randomDigit());
-      }else if(type.kind === "code39"){
-        chars[i] = randomFromCharset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
-      }else if(type.kind === "ascii"){
-        chars[i] = randomFromCharset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+    if(type.kind === "upce-fixed" && position === 0){
+      return Math.random() < 0.5 ? "0" : "1";
+    }
+    if(type.kind === "numeric-fixed" || type.kind === "upce-fixed"){
+      return String(randomDigit());
+    }
+    if(type.kind === "code39"){
+      return randomFromCharset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+    }
+    if(type.kind === "ascii"){
+      return randomFromCharset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+    }
+    return String(randomDigit());
+  }
+
+  // "[0-9A-Z013]" のような集合指定文字列を、重複のない文字配列に変換する。
+  // "A-Z" のようなハイフン区切りはレンジ展開、それ以外は1文字ずつ直接列挙。
+  // 出現確率はどの文字も均等(重み付けなし)。
+  function parseCharClass(content){
+    var set = [];
+    var seen = {};
+    function add(ch){ if(!seen[ch]){ seen[ch] = true; set.push(ch); } }
+    var i = 0;
+    while(i < content.length){
+      if(content[i+1] === "-" && i+2 < content.length){
+        var start = content.charCodeAt(i);
+        var end = content.charCodeAt(i+2);
+        if(end >= start){
+          for(var code = start; code <= end; code++){ add(String.fromCharCode(code)); }
+        }else{
+          // 逆順レンジ(例: [Z-A])は無効なので、3文字ともそのまま個別の文字として扱う
+          add(content[i]); add("-"); add(content[i+2]);
+        }
+        i += 3;
       }else{
-        chars[i] = String(randomDigit());
+        add(content[i]);
+        i += 1;
       }
     }
-    return chars.join("");
+    return set;
+  }
+
+  // 入力文字列を「リテラル文字」「? (簡易ランダム)」「[集合]{n} (パターンランダム)」
+  // のトークン列に分解する。閉じ括弧が見つからない "[" はリテラル文字として扱う
+  // (エスケープ構文は用意していないため)。
+  function parsePattern(str){
+    var tokens = [];
+    var i = 0;
+    while(i < str.length){
+      var c = str[i];
+      if(c === "?"){
+        tokens.push({ type:"wildcard" });
+        i++;
+        continue;
+      }
+      if(c === "["){
+        var closeIdx = str.indexOf("]", i+1);
+        if(closeIdx === -1){
+          tokens.push({ type:"literal", value:c });
+          i++;
+          continue;
+        }
+        var content = str.slice(i+1, closeIdx);
+        var chars = parseCharClass(content);
+        var count = 1;
+        var nextIdx = closeIdx + 1;
+        if(str[nextIdx] === "{"){
+          var closeBrace = str.indexOf("}", nextIdx+1);
+          if(closeBrace !== -1){
+            var numStr = str.slice(nextIdx+1, closeBrace);
+            if(/^\d+$/.test(numStr) && numStr.length > 0){
+              count = Math.min(parseInt(numStr, 10), 200); // 暴走防止の上限
+              nextIdx = closeBrace + 1;
+            }
+          }
+        }
+        tokens.push({ type:"class", chars:chars, count:count });
+        i = nextIdx;
+        continue;
+      }
+      tokens.push({ type:"literal", value:c });
+      i++;
+    }
+    return tokens;
+  }
+
+  // パターン文字列を実際のコードに展開する。
+  //   ?              … その規格のデフォルト文字種から1文字ランダム(後方互換)
+  //   [集合]{n}      … 集合からn文字ぶんランダム(重複可・均等確率)
+  //   それ以外の文字 … そのままリテラルとして使用
+  function expandWildcards(str, typeId){
+    var tokens = parsePattern(str);
+    var out = "";
+    tokens.forEach(function(tok){
+      if(tok.type === "literal"){
+        out += tok.value;
+      }else if(tok.type === "wildcard"){
+        out += randomCharForType(typeId, out.length);
+      }else if(tok.type === "class"){
+        for(var k=0;k<tok.count;k++){
+          if(tok.chars.length === 0) continue; // 空集合(例: [] )は何も生成しない
+          out += randomFromCharset(tok.chars.join(""));
+        }
+      }
+    });
+    return out;
   }
 
   function autoCompleteNumeric(expanded, type){
@@ -704,26 +797,33 @@
     return expanded;
   }
 
+  // "[" "]" "{" "}" "-" はパターン構文用のメタ文字なので、最終的な文字種
+  // チェック(validateCode)とは別に、入力中は常に許可しておく。
+  // また [0-9]{13} のように短い記述で長いコードを表せるため、パターン文字列
+  // 自体の長さと実際に生成されるコードの長さはもう一致しない。よってここでは
+  // 桁数による切り詰めは行わず、使用不可な文字の除去だけを行う
+  // (最終的な桁数チェックは登録時にvalidateCode側で行われる)。
   function filterLineValue(value, typeId){
     var type = BARCODE_TYPES[typeId];
     if(type.kind === "numeric-fixed" || type.kind === "upce-fixed"){
-      return value.replace(/[^0-9?]/g, "").slice(0, type.length);
+      // 数字・? に加え、レンジ指定(A-Zなど)を書けるよう英字とメタ文字も許可する
+      return value.replace(/[^0-9A-Za-z?\[\]{}\-]/g, "");
     }
     if(type.kind === "code39"){
       var upper = value.toUpperCase();
       var filtered = "";
       for(var i=0;i<upper.length;i++){
         var ch = upper[i];
-        if(ch === "?" || CODE39_CHARS.test(ch)) filtered += ch;
+        if(ch === "?" || ch === "[" || ch === "]" || ch === "{" || ch === "}" || CODE39_CHARS.test(ch)) filtered += ch;
       }
-      return filtered.slice(0, type.maxLength);
+      return filtered;
     }
     if(type.kind === "ascii"){
       var out = "";
       for(var j=0;j<value.length;j++){
-        if(ASCII_PRINTABLE.test(value[j])) out += value[j];
+        if(ASCII_PRINTABLE.test(value[j])) out += value[j]; // "[]{}?" はASCII_PRINTABLEに含まれる
       }
-      return out.slice(0, type.maxLength);
+      return out;
     }
     return value;
   }
@@ -790,15 +890,18 @@
   function applyInputModeForType(){
     var type = BARCODE_TYPES[currentType];
     if(type.kind === "numeric-fixed" || type.kind === "upce-fixed"){
-      elManualInput.setAttribute("placeholder", "例: 49??????????（" + type.length + "桁、?はランダム）");
+      elManualInput.setAttribute("placeholder", "例: 49[0-9]{10} または 49??????????（" + type.length + "桁）");
       elHint.innerHTML =
-        "1行につき1コード。" + type.length + "桁の数字、または一部を <kbd>?</kbd> にするとランダム生成されます（例: <kbd>49??????????</kbd>）。チェックデジットは自動計算されるので、最後の桁は気にしなくて大丈夫です。" +
+        "1行につき1コード。" + type.length + "桁の数字を入力してください。一部を <kbd>?</kbd> にすると1文字ランダム、" +
+        "<kbd>[集合]{n}</kbd> の形式（例: <kbd>[0-9]{4}</kbd>）で範囲や文字数を指定してランダム生成もできます。" +
+        "チェックデジットは自動計算されるので、最後の桁は気にしなくて大丈夫です。" +
         "複数行入力・貼り付けしてから「一括登録」を押すとまとめて登録されます。";
     }else{
       var sample = type.kind === "code39" ? "英数字・記号（自動で大文字化）" : "印字可能な英数字・記号";
-      elManualInput.setAttribute("placeholder", "例: AB???-????（?はランダム）");
+      elManualInput.setAttribute("placeholder", "例: AB[0-9]{4}-[A-Z]{2}（?でも1文字ランダム可）");
       elHint.innerHTML =
-        "1行につき1コード。" + sample + "を入力、一部を <kbd>?</kbd> にするとランダム生成されます。" +
+        "1行につき1コード。" + sample + "を入力してください。一部を <kbd>?</kbd> にすると1文字ランダム、" +
+        "<kbd>[集合]{n}</kbd> の形式（例: <kbd>[0-9]{4}</kbd> や <kbd>[A-Za-z013]{3}</kbd>）で文字種・文字数を指定してランダム生成もできます。" +
         "複数行入力・貼り付けしてから「一括登録」を押すとまとめて登録されます。";
     }
   }
