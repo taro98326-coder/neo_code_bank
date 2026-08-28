@@ -42,6 +42,14 @@
     --c-code39-bg: #fdead0;
     --c-code128: #d1305a;
     --c-code128-bg: #fde1e9;
+    --c-periodical: #8a5a2c;
+    --c-periodical-bg: #f0e2d0;
+    --c-code93: #3b5a7a;
+    --c-code93-bg: #dde6ee;
+    --c-itf14: #7a6a1a;
+    --c-itf14-bg: #f3edc9;
+    --c-codabar: #9c2f5c;
+    --c-codabar-bg: #f6dbe7;
   }
 
   *{ box-sizing: border-box; }
@@ -295,6 +303,10 @@
   .code-card.type-upce{    --accent: var(--c-upce);    --accent-bg: var(--c-upce-bg); }
   .code-card.type-code39{  --accent: var(--c-code39);  --accent-bg: var(--c-code39-bg); }
   .code-card.type-code128{ --accent: var(--c-code128); --accent-bg: var(--c-code128-bg); }
+  .code-card.type-periodical{ --accent: var(--c-periodical); --accent-bg: var(--c-periodical-bg); }
+  .code-card.type-code93{  --accent: var(--c-code93);  --accent-bg: var(--c-code93-bg); }
+  .code-card.type-itf14{   --accent: var(--c-itf14);   --accent-bg: var(--c-itf14-bg); }
+  .code-card.type-codabar{ --accent: var(--c-codabar); --accent-bg: var(--c-codabar-bg); }
 
   .code-card .scanline{
     position:absolute;
@@ -372,6 +384,19 @@
   }
   .code-card .barcode-stage svg{ max-width:100%; height:auto; }
 
+  /* ---- 定期刊行物(EAN-13+アドオン5桁)専用: 2本のバーコードを並べ、
+     アドオン側を印刷慣行に合わせて少し高く見せる ---- */
+  .code-card .periodical-group{
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    gap: 12px;
+  }
+  .code-card .periodical-group .addon-wrap{
+    margin-bottom: 15px; /* 底を基準に上へずらして「高く」見せる */
+  }
+  .code-card .periodical-group svg{ display:block; }
+
   .code-card .code-number{
     text-align:center;
     font-family: var(--mono);
@@ -420,7 +445,7 @@
 
     <div class="control-col title-block">
       <h1>NeoCodeBank</h1>
-      <div class="sub">JAN / UPC / CODE39 / CODE128 → バーコード即描画</div>
+      <div class="sub">JAN / UPC / CODE39 / CODE128 / 定期刊行物 ほか → バーコード即描画</div>
       <div class="status" id="status">
         <span class="dot"></span><span id="statusText">入力待機中</span>
       </div>
@@ -466,11 +491,16 @@
     upca:    { id:"upca",    tabLabel:"UPC-A",    label:"UPC-A",           jsbarcodeFormat:"UPC",    kind:"numeric-fixed", length:12 },
     upce:    { id:"upce",    tabLabel:"UPC-E",    label:"UPC-E",           jsbarcodeFormat:"UPCE",   kind:"upce-fixed",    length:8 },
     code39:  { id:"code39",  tabLabel:"CODE39",   label:"CODE39",          jsbarcodeFormat:"CODE39", kind:"code39",        maxLength:32 },
-    code128: { id:"code128", tabLabel:"CODE128",  label:"CODE128",         jsbarcodeFormat:"CODE128",kind:"ascii",         maxLength:30 }
+    code128: { id:"code128", tabLabel:"CODE128",  label:"CODE128",         jsbarcodeFormat:"CODE128",kind:"ascii",         maxLength:30 },
+    periodical: { id:"periodical", tabLabel:"定期刊行物", label:"定期刊行物(EAN-13+5)", jsbarcodeFormat:"PERIODICAL", kind:"periodical", length:18, mainLength:13, addonLength:5 },
+    code93:  { id:"code93",  tabLabel:"CODE93",   label:"CODE93",          jsbarcodeFormat:"CODE93", kind:"code93",        maxLength:40 },
+    itf14:   { id:"itf14",   tabLabel:"ITF-14",   label:"ITF-14",          jsbarcodeFormat:"ITF14",  kind:"numeric-fixed", length:14 },
+    codabar: { id:"codabar", tabLabel:"CODABAR",  label:"CODABAR",         jsbarcodeFormat:"codabar",kind:"codabar",       maxLength:20 }
   };
-  var TYPE_ORDER = ["jan13","jan8","upca","upce","code39","code128"];
+  var TYPE_ORDER = ["jan13","jan8","upca","upce","code39","code128","periodical","code93","itf14","codabar"];
   var CODE39_CHARS = /^[0-9A-Z\-. $\/+%]*$/;
   var ASCII_PRINTABLE = /^[\x20-\x7E]*$/;
+  var CODABAR_CHARS = /^[0-9\-$:.+\/]*$/;
 
   // ③ 種類ごとのデフォルト入力パターン(初回表示時・タブ切替時にこの値へ初期化)
   var DEFAULT_PATTERNS = {
@@ -479,7 +509,11 @@
     upca:    "0[0-9]{10}",
     upce:    "0[0-9]{6}",
     code39:  "[0-9]{4}",
-    code128: "[0-9]{13}"
+    code128: "[0-9]{13}",
+    periodical: "491[0-9]{10}0[0-3][1-9]00",
+    code93:  "[0-9]{10}",
+    itf14:   "[0-9]{13}",
+    codabar: "[0-9]{10}"
   };
 
   var STORAGE_KEY = "code-viewer-history-v2";
@@ -562,7 +596,7 @@
       return { ok:true, code:code8 };
     }
 
-    if(type.kind === "code39"){
+    if(type.kind === "code39" || type.kind === "code93"){
       var c39 = input.trim().toUpperCase();
       if(c39.length === 0){
         return { ok:false, reason:"文字を入力してください" };
@@ -571,7 +605,7 @@
         return { ok:false, reason: type.maxLength + "文字以内で入力してください（現在" + c39.length + "文字）" };
       }
       if(!CODE39_CHARS.test(c39)){
-        return { ok:false, reason:"CODE39で使用できない文字が含まれています（英数字と - . 空白 $ / + % のみ）" };
+        return { ok:false, reason: type.label + "で使用できない文字が含まれています（英数字と - . 空白 $ / + % のみ）" };
       }
       return { ok:true, code:c39 };
     }
@@ -590,6 +624,36 @@
       return { ok:true, code:c128 };
     }
 
+    if(type.kind === "codabar"){
+      var cb = input.trim().toUpperCase();
+      if(cb.length === 0){
+        return { ok:false, reason:"文字を入力してください" };
+      }
+      if(cb.length > type.maxLength){
+        return { ok:false, reason: type.maxLength + "文字以内で入力してください（現在" + cb.length + "文字）" };
+      }
+      if(!CODABAR_CHARS.test(cb)){
+        return { ok:false, reason:"CODABARで使用できない文字が含まれています（数字と - $ : . + / のみ。開始/終了記号は自動付与されます）" };
+      }
+      return { ok:true, code:cb };
+    }
+
+    if(type.kind === "periodical"){
+      var pcode = input.trim();
+      if(!/^\d{18}$/.test(pcode)){
+        return { ok:false, reason:"定期刊行物コードは本体13桁+予備5桁の合計18桁で入力してください（現在" + pcode.replace(/\D/g,"").length + "桁）" };
+      }
+      var mainPart = pcode.slice(0,13);
+      var addonPart = pcode.slice(13,18);
+      var mainDigits = mainPart.split("").map(Number);
+      var mainCheck = mainDigits[12];
+      var mainExpected = calcCheckDigit(mainDigits.slice(0,12));
+      if(mainCheck !== mainExpected){
+        return { ok:false, reason:"本体13桁のチェックデジットが一致しません（期待値: " + mainExpected + "）" };
+      }
+      return { ok:true, code:mainPart + addonPart };
+    }
+
     return { ok:false, reason:"未対応の種類です" };
   }
 
@@ -601,14 +665,17 @@
     if(type.kind === "upce-fixed" && position === 0){
       return Math.random() < 0.5 ? "0" : "1";
     }
-    if(type.kind === "numeric-fixed" || type.kind === "upce-fixed"){
+    if(type.kind === "numeric-fixed" || type.kind === "upce-fixed" || type.kind === "periodical"){
       return String(randomDigit());
     }
-    if(type.kind === "code39"){
+    if(type.kind === "code39" || type.kind === "code93"){
       return randomFromCharset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ");
     }
     if(type.kind === "ascii"){
       return randomFromCharset("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+    }
+    if(type.kind === "codabar"){
+      return String(randomDigit());
     }
     return String(randomDigit());
   }
@@ -721,6 +788,26 @@
     return expanded;
   }
 
+  // 定期刊行物(本体13桁+予備5桁=合計18桁)。本体13桁目のチェックデジットだけを
+  // 自動計算し、予備5桁はそのまま(チェックデジットの概念がないため)扱う。
+  // 17桁(本体12桁+チェックデジット抜き+予備5桁)なら挿入、18桁なら本体13桁目を再計算する。
+  function autoCompletePeriodical(expanded){
+    if(!/^\d+$/.test(expanded)) return expanded;
+    if(expanded.length === 17){
+      var mainPart = expanded.slice(0,12);
+      var addonPart = expanded.slice(12);
+      var check = calcCheckDigit(mainPart.split("").map(Number));
+      return mainPart + check + addonPart;
+    }
+    if(expanded.length === 18){
+      var mainPart2 = expanded.slice(0,12);
+      var addonPart2 = expanded.slice(13);
+      var check2 = calcCheckDigit(mainPart2.split("").map(Number));
+      return mainPart2 + check2 + addonPart2;
+    }
+    return expanded;
+  }
+
   function buildFinalCode(lineRaw, typeId){
     var type = BARCODE_TYPES[typeId];
     var trimmed = (lineRaw || "").trim();
@@ -728,16 +815,18 @@
     var expanded = expandWildcards(trimmed, typeId);
     if(type.kind === "numeric-fixed"){ expanded = autoCompleteNumeric(expanded, type); }
     else if(type.kind === "upce-fixed"){ expanded = autoCompleteUpce(expanded); }
-    else if(type.kind === "code39"){ expanded = expanded.toUpperCase(); }
+    else if(type.kind === "periodical"){ expanded = autoCompletePeriodical(expanded); }
+    else if(type.kind === "code39" || type.kind === "code93"){ expanded = expanded.toUpperCase(); }
+    else if(type.kind === "codabar"){ expanded = expanded.toUpperCase(); }
     return expanded;
   }
 
   function filterLineValue(value, typeId){
     var type = BARCODE_TYPES[typeId];
-    if(type.kind === "numeric-fixed" || type.kind === "upce-fixed"){
+    if(type.kind === "numeric-fixed" || type.kind === "upce-fixed" || type.kind === "periodical"){
       return value.replace(/[^0-9A-Za-z?\[\]{}\-]/g, "");
     }
-    if(type.kind === "code39"){
+    if(type.kind === "code39" || type.kind === "code93"){
       var upper = value.toUpperCase();
       var filtered = "";
       for(var i=0;i<upper.length;i++){
@@ -752,6 +841,15 @@
         if(ASCII_PRINTABLE.test(value[j])) out += value[j];
       }
       return out;
+    }
+    if(type.kind === "codabar"){
+      var upperCb = value.toUpperCase();
+      var filteredCb = "";
+      for(var k=0;k<upperCb.length;k++){
+        var chc = upperCb[k];
+        if(chc === "?" || chc === "[" || chc === "]" || chc === "{" || chc === "}" || CODABAR_CHARS.test(chc)) filteredCb += chc;
+      }
+      return filteredCb;
     }
     return value;
   }
@@ -783,10 +881,10 @@
     catch(e){ /* ストレージ不可でも動作は継続 */ }
   }
 
-  function renderBarcodeSVG(code, format){
+  function renderBarcodeSVG(code, format, opts){
     var svg = document.createElementNS("http://www.w3.org/2000/svg","svg");
     try{
-      JsBarcode(svg, code, {
+      JsBarcode(svg, code, Object.assign({
         format: format,
         width: 2,
         height: 60,
@@ -794,11 +892,32 @@
         margin: 6,
         background: "transparent",
         lineColor: "#17181a"
-      });
+      }, opts || {}));
     }catch(e){
       return null;
     }
     return svg;
+  }
+
+  // 定期刊行物: 本体EAN-13とアドオンEAN-5を別々のSVGとして生成し、
+  // アドオン側の文字を上に表示(textPosition:"top")した上でCSSで底上げすることで、
+  // 印刷慣行(アドオンを少し高く見せる)に寄せる。
+  function renderPeriodicalGroup(code){
+    var mainPart = code.slice(0,13);
+    var addonPart = code.slice(13,18);
+    var wrap = document.createElement("div");
+    wrap.className = "periodical-group";
+
+    var mainSvg = renderBarcodeSVG(mainPart, "EAN13", { height:60, fontSize:13, margin:6 });
+    if(mainSvg) wrap.appendChild(mainSvg);
+
+    var addonWrap = document.createElement("div");
+    addonWrap.className = "addon-wrap";
+    var addonSvg = renderBarcodeSVG(addonPart, "EAN5", { height:46, fontSize:11, margin:4, textPosition:"top" });
+    if(addonSvg) addonWrap.appendChild(addonSvg);
+    wrap.appendChild(addonWrap);
+
+    return wrap;
   }
 
   function renderTypeTabs(){
@@ -822,15 +941,28 @@
 
   function applyInputModeForType(){
     var type = BARCODE_TYPES[currentType];
-    if(type.kind === "numeric-fixed" || type.kind === "upce-fixed"){
+    if(type.kind === "periodical"){
+      elManualInput.setAttribute("placeholder", "例: 491[0-9]{10}0[0-3][1-9]00（本体13桁+予備5桁=18桁）");
+      elHint.innerHTML =
+        "1行につき1コード。<b>本体13桁+予備5桁=合計18桁</b>の数字を入力してください（本体先頭は日本の場合491が一般的）。" +
+        "一部を <kbd>?</kbd> や <kbd>[集合]{n}</kbd> でランダム化できます。" +
+        "本体13桁目のチェックデジットのみ自動計算されます（予備5桁にチェックデジットはありません）。" +
+        "複数行入力・貼り付けしてから「一括登録」を押すとまとめて登録されます。";
+    }else if(type.kind === "numeric-fixed" || type.kind === "upce-fixed"){
       elManualInput.setAttribute("placeholder", "例: 49[0-9]{10}（" + type.length + "桁）");
       elHint.innerHTML =
         "1行につき1コード。" + type.length + "桁の数字を入力してください。一部を <kbd>?</kbd> にすると1文字ランダム、" +
         "<kbd>[集合]{n}</kbd>（例: <kbd>[0-9]{4}</kbd>）で範囲や文字数を指定してランダム生成もできます。" +
         "チェックデジットは自動計算されるので、最後の桁は気にしなくて大丈夫です。" +
         "複数行入力・貼り付けしてから「一括登録」を押すとまとめて登録されます。";
+    }else if(type.kind === "codabar"){
+      elManualInput.setAttribute("placeholder", "例: [0-9]{10}（数字と - $ : . + / が使用可）");
+      elHint.innerHTML =
+        "1行につき1コード。数字と記号(- $ : . + /)を入力してください。開始/終了記号(A〜D)は自動で付与されます。" +
+        "一部を <kbd>?</kbd> や <kbd>[集合]{n}</kbd> でランダム化できます。" +
+        "複数行入力・貼り付けしてから「一括登録」を押すとまとめて登録されます。";
     }else{
-      var sample = type.kind === "code39" ? "英数字・記号（自動で大文字化）" : "印字可能な英数字・記号";
+      var sample = type.kind === "code39" || type.kind === "code93" ? "英数字・記号（自動で大文字化）" : "印字可能な英数字・記号";
       elManualInput.setAttribute("placeholder", "例: AB[0-9]{4}-[A-Z]{2}（?でも1文字ランダム可）");
       elHint.innerHTML =
         "1行につき1コード。" + sample + "を入力してください。一部を <kbd>?</kbd> にすると1文字ランダム、" +
@@ -900,7 +1032,7 @@
     var top = document.createElement("div");
     top.className = "card-top";
 
-    var lenUnit = (type.kind === "code39" || type.kind === "ascii") ? "文字" : "桁";
+    var lenUnit = (type.kind === "code39" || type.kind === "code93" || type.kind === "ascii" || type.kind === "codabar") ? "文字" : "桁";
     var left = document.createElement("div");
     left.style.display = "flex";
     left.style.alignItems = "center";
@@ -936,8 +1068,13 @@
 
     var stage = document.createElement("div");
     stage.className = "barcode-stage";
-    var svg = renderBarcodeSVG(entry.code, type.jsbarcodeFormat);
-    if(svg) stage.appendChild(svg);
+    if(type.kind === "periodical"){
+      var group = renderPeriodicalGroup(entry.code);
+      stage.appendChild(group);
+    }else{
+      var svg = renderBarcodeSVG(entry.code, type.jsbarcodeFormat);
+      if(svg) stage.appendChild(svg);
+    }
     card.appendChild(stage);
 
     var num = document.createElement("div");
