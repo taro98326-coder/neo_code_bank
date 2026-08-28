@@ -22,6 +22,26 @@
     --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
     --display: 'Space Grotesk', system-ui, sans-serif;
     --sans: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+
+    /* ==================================================================
+       ★ コード種類ごとの配色はここで調整してください ★
+       --c-XXX     : バッジの文字色／カード左側のアクセント線の色
+       --c-XXX-bg  : バッジの背景色（カードのごく薄い色味にも使用）
+       6種類（jan13 / jan8 / upca / upce / code39 / code128）を
+       個別に変更できます。同じ色にしたい場合は同じ値を入れてください。
+       ================================================================== */
+    --c-jan13: #0e8f7a;
+    --c-jan13-bg: #dcf3ee;
+    --c-jan8: #4F9B1F;
+    --c-jan8-bg: #D5E8CD;
+    --c-upca: #2f6fed;
+    --c-upca-bg: #e2ebff;
+    --c-upce: #7c3aed;
+    --c-upce-bg: #ece2fd;
+    --c-code39: #d9770e;
+    --c-code39-bg: #fdead0;
+    --c-code128: #d1305a;
+    --c-code128-bg: #fde1e9;
   }
 
   *{ box-sizing: border-box; }
@@ -41,47 +61,36 @@
     padding: 24px 8px 64px;
   }
 
-  /* ---- 左右並びレイアウトの追加 ---- */
-  .main-grid {
-    display: grid;
-    grid-template-columns: 1fr; /* スマホ等は1列（縦並び） */
+  .wrap{ width:100%; max-width: 1400px; }
+
+  /* ---- ② 上部操作エリア：3カラム（タイトル+種別／テキストエリア／ボタン） ---- */
+  .control-grid{
+    display:grid;
+    grid-template-columns: 1fr;
     gap: 20px;
     align-items: start;
-    margin-bottom: 20px;
+    margin-bottom: 22px;
   }
-
-  @media (min-width: 860px) {
-    .main-grid {
-      grid-template-columns: 1fr 1fr; /* PCサイズで左右（2列）並び */
+  @media (min-width: 900px){
+    .control-grid{
+      grid-template-columns: 380px 1fr 260px;
     }
   }
-
-  /* 左右並び時の余白調整 */
-  .input-section {
-    display: flex;
-    flex-direction: column;
-  }
-  .hint {
-    margin: 6px 0 0 2px; /* 提示位置の微調整 */
-  }
-
-  .wrap { width:100%; max-width: 1400px; }
-
-  header{
+  .control-col{
     display:flex;
-    align-items:center;
-    justify-content:space-between;
-    margin-bottom: 18px;
-    gap: 12px;
+    flex-direction:column;
+    gap: 10px;
+    min-width: 0;
   }
-  header h1{
+
+  .title-block h1{
     font-family: var(--display);
     font-weight:700;
     font-size: 20px;
     letter-spacing: -0.01em;
     margin:0;
   }
-  header .sub{
+  .title-block .sub{
     font-size: 12px;
     color: var(--ink-soft);
     margin-top: 2px;
@@ -100,6 +109,8 @@
     border: 1px solid var(--line);
     border-radius: 999px;
     white-space:nowrap;
+    width: fit-content;
+    margin-top: 4px;
   }
   .status .dot{
     width:7px; height:7px; border-radius:50%;
@@ -116,14 +127,10 @@
   /* ---- 種類タブ ---- */
   .type-tabs{
     display:flex;
+    flex-wrap: wrap;
     gap: 6px;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    margin-bottom: 14px;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
+    margin-top: 6px;
   }
-  .type-tabs::-webkit-scrollbar{ display:none; }
   .type-tab{
     font-family: var(--mono);
     font-size: 12px;
@@ -145,13 +152,7 @@
     color: var(--paper-raised);
   }
 
-  .input-row{
-    display:flex;
-    align-items:flex-start;
-    gap:8px;
-    margin-bottom: 10px;
-  }
-  .input-row textarea{
+  .control-col.control-textarea textarea{
     flex:1;
     font-family: var(--mono);
     font-size: 15px;
@@ -163,42 +164,18 @@
     color: var(--ink);
     outline: none;
     min-width:0;
-    min-height: 76px;
+    min-height: 130px;
+    height: 100%;
     resize: vertical;
     white-space: pre;
     overflow-x: auto;
   }
-  .input-row textarea:focus{
+  .control-col.control-textarea textarea:focus{
     border-color: var(--ink);
   }
-  .btn-col{
-    display:flex;
-    align-items:flex-start;
-    gap:8px;
-    margin-bottom: 10px;
-  }
-  .btn-col button{
-    font-family: var(--sans);
-    font-weight:600;
-    font-size: 13px;
-    padding: 11px 16px;
-    border-radius: 10px;
-    border: 1.5px solid var(--ink);
-    background: var(--ink);
-    color: var(--paper-raised);
-    cursor:pointer;
-    white-space:nowrap;
-  }
-  .btn-col button.secondary{
-    background: var(--paper-raised);
-    color: var(--ink);
-  }
-  .input-row button:hover{ opacity:.85; }
-  .input-row button:active{ transform: translateY(1px); }
   .hint{
     font-size: 11.5px;
     color: var(--ink-faint);
-    margin: -2px 0 22px 2px;
     line-height:1.6;
   }
   .hint kbd{
@@ -210,6 +187,29 @@
     font-size: 10.5px;
   }
 
+  .control-col.control-actions{
+    gap: 10px;
+  }
+  .control-col.control-actions button{
+    font-family: var(--sans);
+    font-weight:600;
+    font-size: 13px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: 1.5px solid var(--ink);
+    background: var(--ink);
+    color: var(--paper-raised);
+    cursor:pointer;
+    white-space:nowrap;
+    width: 100%;
+  }
+  .control-col.control-actions button.secondary{
+    background: var(--paper-raised);
+    color: var(--ink);
+  }
+  .control-col.control-actions button:hover{ opacity:.85; }
+  .control-col.control-actions button:active{ transform: translateY(1px); }
+
   .toast{
     display:none;
     font-family: var(--mono);
@@ -219,7 +219,6 @@
     border: 1px solid #f3b6b0;
     border-radius: 10px;
     padding: 10px 13px;
-    margin-bottom: 16px;
     animation: shake .3s ease;
   }
   .toast.show{ display:block; }
@@ -229,122 +228,25 @@
     75%{ transform: translateX(4px); }
   }
 
-  /* ---- Current card (receipt style) ---- */
-  .card{
-    position:relative;
-    background: var(--paper-raised);
-    border-radius: var(--radius) var(--radius) 0 0;
-    padding: 26px 26px 22px;
-    box-shadow: 0 1px 0 rgba(0,0,0,.03), 0 8px 24px -12px rgba(0,0,0,.15);
-    overflow:hidden;
-  }
-  .card .scanline{
-    position:absolute;
-    left:0; right:0; top:0;
-    height:3px;
-    background: linear-gradient(90deg, transparent, var(--red) 20%, var(--red) 80%, transparent);
-    box-shadow: 0 0 12px 2px rgba(255,59,47,.7);
-    opacity:0;
-    pointer-events:none;
-  }
-  .card.flash .scanline{
-    animation: sweep .55s ease-out;
-  }
-  @keyframes sweep{
-    0%{ top:0; opacity:1; }
-    90%{ opacity:1; }
-    100%{ top:100%; opacity:0; }
-  }
-
-  .card-top{
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    margin-bottom: 14px;
-    gap: 10px;
-  }
-  .badge{
-    font-family: var(--mono);
-    font-size: 10.5px;
-    font-weight:700;
-    letter-spacing: .04em;
-    padding: 4px 8px;
-    border-radius: 6px;
-    background: var(--teal-dim);
-    color: var(--teal);
-  }
-  .timestamp{
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--ink-faint);
-  }
-
-  .barcode-stage{
-    display:flex;
-    justify-content:center;
-    padding: 6px 0 4px;
-    min-height: 96px;
-    overflow-x:auto;
-  }
-  .barcode-stage svg{ max-width:100%; height:auto; }
-
-  .code-number{
-    text-align:center;
-    font-family: var(--mono);
-    font-weight:700;
-    font-size: 22px;
-    letter-spacing: .06em;
-    margin-top: 4px;
-    word-break: break-all;
-  }
-
-  .card-actions{
-    display:flex;
-    justify-content:center;
-    gap: 10px;
-    margin-top: 16px;
-  }
-  .card-actions button{
-    font-family: var(--sans);
-    font-size: 12px;
-    font-weight:600;
-    color: var(--ink-soft);
-    background: transparent;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    padding: 7px 12px;
-    cursor:pointer;
-  }
-  .card-actions button:hover{ background: var(--paper); color: var(--ink); }
-
-  .empty{
-    text-align:center;
-    padding: 34px 10px 30px;
-    color: var(--ink-soft);
-  }
-  .empty svg{ opacity:.5; margin-bottom: 10px; }
-  .empty p{ font-size: 13px; margin: 4px 0; line-height:1.6; }
-  .empty .strong{ color: var(--ink); font-weight:600; }
-
-  /* torn receipt edge */
+  /* torn receipt edge (区切りの装飾として維持) */
   .torn{
     height: 14px;
     background:
-      radial-gradient(circle at 10px -6px, transparent 9px, var(--paper-raised) 9.5px) repeat-x;
+      radial-gradient(circle at 10px -6px, transparent 9px, var(--paper) 9.5px) repeat-x;
     background-size: 20px 20px;
     background-position: 0 -6px;
-    filter: drop-shadow(0 6px 10px rgba(0,0,0,.08));
-    margin-bottom: 26px;
+    margin-bottom: 22px;
+    opacity: .8;
   }
 
-  /* ---- History ---- */
-  .history-head{
+  /* ---- ① 生成済みコード一覧（旧・履歴部分に全カードを統合） ---- */
+  .list-head{
     display:flex;
     justify-content:space-between;
     align-items:center;
     margin-bottom: 10px;
   }
-  .history-head h2{
+  .list-head h2{
     font-family: var(--display);
     font-size: 13px;
     font-weight:700;
@@ -353,7 +255,7 @@
     text-transform: uppercase;
     margin:0;
   }
-  .history-head button{
+  .list-head button{
     font-family: var(--mono);
     font-size: 11px;
     color: var(--ink-faint);
@@ -363,76 +265,86 @@
     text-decoration: underline;
     text-underline-offset: 2px;
   }
-  .history-head button:hover{ color: var(--red); }
+  .list-head button:hover{ color: var(--red); }
 
-  .history-list{
+  .code-grid{
     display:grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
   }
-  @media (max-width: 1100px){
-    .history-list{ grid-template-columns: repeat(4, 1fr); }
-  }
-  @media (max-width: 860px){
-    .history-list{ grid-template-columns: repeat(3, 1fr); }
-  }
-  @media (max-width: 600px){
-    .history-list{ grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 480px){
-    .history-list{ grid-template-columns: 1fr; }
-  }
-  .history-item{
+
+  .code-card{
+    position:relative;
     display:flex;
     flex-direction:column;
-    gap: 4px;
-    padding: 10px 8px 12px;
-    border: 1px solid var(--line);
+    gap: 6px;
     background: var(--paper-raised);
-    border-radius: 10px;
-    min-width:0;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent, var(--teal));
+    border-radius: var(--radius);
+    padding: 14px 14px 12px;
+    box-shadow: 0 1px 0 rgba(0,0,0,.03), 0 6px 18px -12px rgba(0,0,0,.18);
+    overflow:hidden;
+    min-width: 0;
   }
-  .history-item .row-top{
+  /* 種類ごとにアクセント色(--accent)/薄い背景色(--accent-bg)を割り当てる。
+     色そのものは :root の --c-XXX / --c-XXX-bg を編集してください。 */
+  .code-card.type-jan13{   --accent: var(--c-jan13);   --accent-bg: var(--c-jan13-bg); }
+  .code-card.type-jan8{    --accent: var(--c-jan8);    --accent-bg: var(--c-jan8-bg); }
+  .code-card.type-upca{    --accent: var(--c-upca);    --accent-bg: var(--c-upca-bg); }
+  .code-card.type-upce{    --accent: var(--c-upce);    --accent-bg: var(--c-upce-bg); }
+  .code-card.type-code39{  --accent: var(--c-code39);  --accent-bg: var(--c-code39-bg); }
+  .code-card.type-code128{ --accent: var(--c-code128); --accent-bg: var(--c-code128-bg); }
+
+  .code-card .scanline{
+    position:absolute;
+    left:0; right:0; top:0;
+    height:3px;
+    background: linear-gradient(90deg, transparent, var(--red) 20%, var(--red) 80%, transparent);
+    box-shadow: 0 0 12px 2px rgba(255,59,47,.7);
+    opacity:0;
+    pointer-events:none;
+  }
+  .code-card.flash .scanline{
+    animation: sweep .55s ease-out;
+  }
+  @keyframes sweep{
+    0%{ top:0; opacity:1; }
+    90%{ opacity:1; }
+    100%{ top:100%; opacity:0; }
+  }
+
+  .code-card .card-top{
     display:flex;
-    align-items:center;
     justify-content:space-between;
+    align-items:center;
     gap: 6px;
   }
-  .history-item .meta{
+  .code-card .badge{
     font-family: var(--mono);
-    font-size: 10px;
+    font-size: 10.5px;
+    font-weight:700;
+    letter-spacing: .04em;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: var(--accent-bg, var(--teal-dim));
+    color: var(--accent, var(--teal));
+  }
+  .code-card .meta{
+    font-family: var(--mono);
+    font-size: 10.5px;
     color: var(--ink-faint);
     display:flex;
-    gap:6px;
     align-items:center;
-    min-width:0;
-    overflow:hidden;
-  }
-  .history-item .meta .type{
-    color: var(--teal);
-    font-weight:700;
-  }
-  .history-item .barcode-wrap{
-    display:flex;
-    justify-content:center;
-    padding: 2px 0;
+    gap: 6px;
     min-width:0;
   }
-  .history-item .barcode-wrap svg{ display:block; max-width:100%; height:auto; }
-  .history-item .code{
-    text-align:center;
-    font-family: var(--mono);
-    font-size: 13px;
-    font-weight:700;
-    letter-spacing: .03em;
-    word-break: break-all;
-  }
-  .history-item .actions{
+  .code-card .card-actions-icons{
     display:flex;
     gap:2px;
     flex: 0 0 auto;
   }
-  .history-item .actions button{
+  .code-card .card-actions-icons button{
     width: 26px; height: 26px;
     border-radius: 7px;
     border: 1px solid transparent;
@@ -443,13 +355,44 @@
     align-items:center;
     justify-content:center;
   }
-  .history-item .actions button:hover{
+  .code-card .card-actions-icons button:hover{
     background: var(--paper);
     border-color: var(--line);
     color: var(--ink);
   }
-  .history-item .actions button.copied{ color: var(--teal); }
-  .history-item .actions .del:hover{ color: var(--red); }
+  .code-card .card-actions-icons button.copied{ color: var(--accent, var(--teal)); }
+  .code-card .card-actions-icons .del:hover{ color: var(--red); }
+
+  .code-card .barcode-stage{
+    display:flex;
+    justify-content:center;
+    padding: 4px 0;
+    min-height: 72px;
+    overflow-x:auto;
+  }
+  .code-card .barcode-stage svg{ max-width:100%; height:auto; }
+
+  .code-card .code-number{
+    text-align:center;
+    font-family: var(--mono);
+    font-weight:700;
+    font-size: 15px;
+    letter-spacing: .04em;
+    word-break: break-all;
+  }
+
+  .empty-state{
+    grid-column: 1 / -1;
+    text-align:center;
+    padding: 34px 10px 30px;
+    color: var(--ink-soft);
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+  }
+  .empty-state svg{ opacity:.5; margin-bottom: 10px; }
+  .empty-state p{ font-size: 13px; margin: 4px 0; line-height:1.6; }
+  .empty-state .strong{ color: var(--ink); font-weight:600; }
 
   footer{
     margin-top: 28px;
@@ -460,58 +403,51 @@
   }
 
   @media (prefers-reduced-motion: reduce){
-    .status .dot, .card.flash .scanline, .toast{ animation: none !important; }
+    .status .dot, .code-card.flash .scanline, .toast{ animation: none !important; }
   }
 
   @media (max-width: 420px){
-    .code-number{ font-size: 18px; }
-    header h1{ font-size: 17px; }
+    .code-card .code-number{ font-size: 13px; }
+    .title-block h1{ font-size: 17px; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <header>
-    <div>
+  <!-- ② 上部操作エリア：3カラム(タイトル+種別選択／テキストエリア／ボタン) -->
+  <div class="control-grid">
+
+    <div class="control-col title-block">
       <h1>NeoCodeBank</h1>
       <div class="sub">JAN / UPC / CODE39 / CODE128 → バーコード即描画</div>
-    </div>
-    <div class="status" id="status">
-      <span class="dot"></span><span id="statusText">入力待機中</span>
-    </div>
-  </header>
-
-  <div class="main-grid">
-    <div class="input-section">
+      <div class="status" id="status">
+        <span class="dot"></span><span id="statusText">入力待機中</span>
+      </div>
       <div class="type-tabs" id="typeTabs"></div>
+    </div>
 
-      <div class="input-row">
-        <textarea id="manualInput" autocomplete="off" rows="3"></textarea>
-      </div>
+    <div class="control-col control-textarea">
+      <textarea id="manualInput" autocomplete="off" rows="6"></textarea>
       <div class="hint" id="hintText"></div>
+    </div>
 
-      <div class="btn-col">
-        <button id="submitBtn" class="secondary">一括登録</button>
-        <button id="readClipboardBtn">貼り付け</button>
-      </div>
-
+    <div class="control-col control-actions">
+      <button id="submitBtn">一括登録</button>
+      <button id="readClipboardBtn" class="secondary">貼り付け</button>
       <div class="toast" id="toast"></div>
     </div>
 
-    <div class="output-section">
-
-      <div id="cardArea"></div>
-      <div class="torn"></div>
-
-    </div>
   </div>
 
-  <div class="history-head">
-    <h2>履歴</h2>
+  <div class="torn"></div>
+
+  <!-- ① 生成済みコードは全てここに並ぶ（旧・履歴エリアに統合） -->
+  <div class="list-head">
+    <h2>生成済みコード</h2>
     <button id="clearAllBtn">全て削除</button>
   </div>
-  <div class="history-list" id="historyList"></div>
+  <div class="code-grid" id="codeGrid"></div>
 
   <footer>すべてこの端末内で処理されます。サーバー送信なし。</footer>
 </div>
@@ -536,12 +472,21 @@
   var CODE39_CHARS = /^[0-9A-Z\-. $\/+%]*$/;
   var ASCII_PRINTABLE = /^[\x20-\x7E]*$/;
 
+  // ③ 種類ごとのデフォルト入力パターン(初回表示時・タブ切替時にこの値へ初期化)
+  var DEFAULT_PATTERNS = {
+    jan13:   "49[0-9]{10}",
+    jan8:    "49[0-9]{5}",
+    upca:    "0[0-9]{10}",
+    upce:    "0[0-9]{6}",
+    code39:  "[0-9]{4}",
+    code128: "[0-9]{13}"
+  };
+
   var STORAGE_KEY = "code-viewer-history-v2";
   var LEGACY_STORAGE_KEY = "jan-viewer-history-v1";
   var MAX_HISTORY = 300;
 
-  var elCardArea = document.getElementById("cardArea");
-  var elHistoryList = document.getElementById("historyList");
+  var elCodeGrid = document.getElementById("codeGrid");
   var elToast = document.getElementById("toast");
   var elManualInput = document.getElementById("manualInput");
   var elStatusText = document.getElementById("statusText");
@@ -550,6 +495,10 @@
 
   var currentType = "jan13";
   var history = loadHistory();
+  // 直近の登録操作で「光らせる(scanlineアニメーションを再生する)」べきカードのID集合。
+  // renderAll() のたびに全カードDOMを作り直すため、ここに載っているIDのカードにだけ
+  // 生成時点で class="flash" を付与する(付けない限りアニメーションは再生されない)。
+  var lastFlashIds = new Set();
 
   function calcCheckDigit(digitsWithoutCheck){
     var sum = 0;
@@ -579,7 +528,7 @@
     if(type.kind === "numeric-fixed"){
       var code = input.trim();
       if(!/^\d+$/.test(code)){
-        return { ok:false, reason:"数字のみ入力してください（?を使う場合はランダム生成で数字に変換されます）" };
+        return { ok:false, reason:"数字のみ入力してください（?や[集合]を使う場合はランダム生成で数字に変換されます）" };
       }
       if(code.length !== type.length){
         return { ok:false, reason: type.label + "は" + type.length + "桁で入力してください（現在" + code.length + "桁）" };
@@ -647,9 +596,6 @@
   function randomDigit(){ return Math.floor(Math.random() * 10); }
   function randomFromCharset(charset){ return charset[Math.floor(Math.random() * charset.length)]; }
 
-  // "?" 1文字ぶんのランダム値(その規格のデフォルト文字種から1文字)。
-  // UPC-Eの先頭桁(Number System)は0/1のみ有効なため、position(生成済み
-  // 出力の長さ)が0の時だけ0/1に限定する。
   function randomCharForType(typeId, position){
     var type = BARCODE_TYPES[typeId];
     if(type.kind === "upce-fixed" && position === 0){
@@ -667,9 +613,6 @@
     return String(randomDigit());
   }
 
-  // "[0-9A-Z013]" のような集合指定文字列を、重複のない文字配列に変換する。
-  // "A-Z" のようなハイフン区切りはレンジ展開、それ以外は1文字ずつ直接列挙。
-  // 出現確率はどの文字も均等(重み付けなし)。
   function parseCharClass(content){
     var set = [];
     var seen = {};
@@ -682,7 +625,6 @@
         if(end >= start){
           for(var code = start; code <= end; code++){ add(String.fromCharCode(code)); }
         }else{
-          // 逆順レンジ(例: [Z-A])は無効なので、3文字ともそのまま個別の文字として扱う
           add(content[i]); add("-"); add(content[i+2]);
         }
         i += 3;
@@ -694,9 +636,6 @@
     return set;
   }
 
-  // 入力文字列を「リテラル文字」「? (簡易ランダム)」「[集合]{n} (パターンランダム)」
-  // のトークン列に分解する。閉じ括弧が見つからない "[" はリテラル文字として扱う
-  // (エスケープ構文は用意していないため)。
   function parsePattern(str){
     var tokens = [];
     var i = 0;
@@ -723,7 +662,7 @@
           if(closeBrace !== -1){
             var numStr = str.slice(nextIdx+1, closeBrace);
             if(/^\d+$/.test(numStr) && numStr.length > 0){
-              count = Math.min(parseInt(numStr, 10), 200); // 暴走防止の上限
+              count = Math.min(parseInt(numStr, 10), 200);
               nextIdx = closeBrace + 1;
             }
           }
@@ -738,10 +677,6 @@
     return tokens;
   }
 
-  // パターン文字列を実際のコードに展開する。
-  //   ?              … その規格のデフォルト文字種から1文字ランダム(後方互換)
-  //   [集合]{n}      … 集合からn文字ぶんランダム(重複可・均等確率)
-  //   それ以外の文字 … そのままリテラルとして使用
   function expandWildcards(str, typeId){
     var tokens = parsePattern(str);
     var out = "";
@@ -752,7 +687,7 @@
         out += randomCharForType(typeId, out.length);
       }else if(tok.type === "class"){
         for(var k=0;k<tok.count;k++){
-          if(tok.chars.length === 0) continue; // 空集合(例: [] )は何も生成しない
+          if(tok.chars.length === 0) continue;
           out += randomFromCharset(tok.chars.join(""));
         }
       }
@@ -797,16 +732,9 @@
     return expanded;
   }
 
-  // "[" "]" "{" "}" "-" はパターン構文用のメタ文字なので、最終的な文字種
-  // チェック(validateCode)とは別に、入力中は常に許可しておく。
-  // また [0-9]{13} のように短い記述で長いコードを表せるため、パターン文字列
-  // 自体の長さと実際に生成されるコードの長さはもう一致しない。よってここでは
-  // 桁数による切り詰めは行わず、使用不可な文字の除去だけを行う
-  // (最終的な桁数チェックは登録時にvalidateCode側で行われる)。
   function filterLineValue(value, typeId){
     var type = BARCODE_TYPES[typeId];
     if(type.kind === "numeric-fixed" || type.kind === "upce-fixed"){
-      // 数字・? に加え、レンジ指定(A-Zなど)を書けるよう英字とメタ文字も許可する
       return value.replace(/[^0-9A-Za-z?\[\]{}\-]/g, "");
     }
     if(type.kind === "code39"){
@@ -821,11 +749,16 @@
     if(type.kind === "ascii"){
       var out = "";
       for(var j=0;j<value.length;j++){
-        if(ASCII_PRINTABLE.test(value[j])) out += value[j]; // "[]{}?" はASCII_PRINTABLEに含まれる
+        if(ASCII_PRINTABLE.test(value[j])) out += value[j];
       }
       return out;
     }
     return value;
+  }
+
+  // ③ 種類切替・初回表示時にテキストエリアをその種類のデフォルトパターンへ初期化する
+  function resetInputToDefault(){
+    elManualInput.value = DEFAULT_PATTERNS[currentType] || "";
   }
 
   function loadHistory(){
@@ -856,8 +789,8 @@
       JsBarcode(svg, code, {
         format: format,
         width: 2,
-        height: 70,
-        fontSize: 14,
+        height: 60,
+        fontSize: 13,
         margin: 6,
         background: "transparent",
         lineColor: "#17181a"
@@ -879,7 +812,7 @@
       btn.addEventListener("click", function(){
         if(currentType === id) return;
         currentType = id;
-        elManualInput.value = "";
+        resetInputToDefault();
         applyInputModeForType();
         renderTypeTabs();
       });
@@ -890,10 +823,10 @@
   function applyInputModeForType(){
     var type = BARCODE_TYPES[currentType];
     if(type.kind === "numeric-fixed" || type.kind === "upce-fixed"){
-      elManualInput.setAttribute("placeholder", "例: 49[0-9]{10} または 49??????????（" + type.length + "桁）");
+      elManualInput.setAttribute("placeholder", "例: 49[0-9]{10}（" + type.length + "桁）");
       elHint.innerHTML =
         "1行につき1コード。" + type.length + "桁の数字を入力してください。一部を <kbd>?</kbd> にすると1文字ランダム、" +
-        "<kbd>[集合]{n}</kbd> の形式（例: <kbd>[0-9]{4}</kbd>）で範囲や文字数を指定してランダム生成もできます。" +
+        "<kbd>[集合]{n}</kbd>（例: <kbd>[0-9]{4}</kbd>）で範囲や文字数を指定してランダム生成もできます。" +
         "チェックデジットは自動計算されるので、最後の桁は気にしなくて大丈夫です。" +
         "複数行入力・貼り付けしてから「一括登録」を押すとまとめて登録されます。";
     }else{
@@ -901,7 +834,7 @@
       elManualInput.setAttribute("placeholder", "例: AB[0-9]{4}-[A-Z]{2}（?でも1文字ランダム可）");
       elHint.innerHTML =
         "1行につき1コード。" + sample + "を入力してください。一部を <kbd>?</kbd> にすると1文字ランダム、" +
-        "<kbd>[集合]{n}</kbd> の形式（例: <kbd>[0-9]{4}</kbd> や <kbd>[A-Za-z013]{3}</kbd>）で文字種・文字数を指定してランダム生成もできます。" +
+        "<kbd>[集合]{n}</kbd>（例: <kbd>[0-9]{4}</kbd> や <kbd>[A-Za-z013]{3}</kbd>）で文字種・文字数を指定してランダム生成もできます。" +
         "複数行入力・貼り付けしてから「一括登録」を押すとまとめて登録されます。";
     }
   }
@@ -917,130 +850,11 @@
 
   function setStatus(text){ elStatusText.textContent = text; }
 
-  function renderCurrentCard(){
-    elCardArea.innerHTML = "";
-    if(history.length === 0){
-      var empty = document.createElement("div");
-      empty.className = "card";
-      empty.innerHTML =
-        '<div class="empty">' +
-        '<svg width="40" height="28" viewBox="0 0 40 28" fill="none"><rect x="0" y="0" width="2" height="28" fill="#17181a"/><rect x="4" y="0" width="1" height="28" fill="#17181a"/><rect x="7" y="0" width="3" height="28" fill="#17181a"/><rect x="12" y="0" width="1" height="28" fill="#17181a"/><rect x="15" y="0" width="2" height="28" fill="#17181a"/><rect x="19" y="0" width="1" height="28" fill="#17181a"/><rect x="22" y="0" width="3" height="28" fill="#17181a"/><rect x="27" y="0" width="1" height="28" fill="#17181a"/><rect x="30" y="0" width="2" height="28" fill="#17181a"/><rect x="34" y="0" width="1" height="28" fill="#17181a"/><rect x="37" y="0" width="3" height="28" fill="#17181a"/></svg>' +
-        "<p class='strong'>まだ読み取り履歴がありません</p>" +
-        "<p>種類タブを選び、コードを入力欄に入力・貼り付けして「一括登録」を押してください</p>" +
-        "</div>";
-      elCardArea.appendChild(empty);
-      return;
-    }
-    var latest = history[0];
-    var latestType = BARCODE_TYPES[latest.type];
-    var card = document.createElement("div");
-    card.className = "card";
-    card.id = "currentCard";
-
-    var scanline = document.createElement("div");
-    scanline.className = "scanline";
-    card.appendChild(scanline);
-
-    var top = document.createElement("div");
-    top.className = "card-top";
-    var lenUnit = (latestType.kind === "code39" || latestType.kind === "ascii") ? "文字" : "桁";
-    top.innerHTML =
-      '<span class="badge">' + latestType.label + '</span>' +
-      '<span class="timestamp">' + latest.code.length + lenUnit + ' ・ ' + formatTime(latest.ts) + '</span>';
-    card.appendChild(top);
-
-    var stage = document.createElement("div");
-    stage.className = "barcode-stage";
-    var svg = renderBarcodeSVG(latest.code, latestType.jsbarcodeFormat);
-    if(svg) stage.appendChild(svg);
-    card.appendChild(stage);
-
-    var num = document.createElement("div");
-    num.className = "code-number";
-    num.textContent = latest.code;
-    card.appendChild(num);
-
-    var actions = document.createElement("div");
-    actions.className = "card-actions";
-    var copyBtn = document.createElement("button");
-    copyBtn.textContent = "コードをコピー";
-    copyBtn.onclick = function(){ copyText(latest.code, copyBtn, "コピー済み"); };
-    actions.appendChild(copyBtn);
-    card.appendChild(actions);
-
-    elCardArea.appendChild(card);
-  }
-
-  function renderHistoryList(){
-    elHistoryList.innerHTML = "";
-    var rest = history.slice(1);
-    if(rest.length === 0){ return; }
-    rest.forEach(function(entry){
-      var entryType = BARCODE_TYPES[entry.type];
-      if(!entryType) return;
-
-      var item = document.createElement("div");
-      item.className = "history-item";
-
-      var rowTop = document.createElement("div");
-      rowTop.className = "row-top";
-
-      var meta = document.createElement("div");
-      meta.className = "meta";
-      var lenUnit = (entryType.kind === "code39" || entryType.kind === "ascii") ? "文字" : "桁";
-      meta.innerHTML =
-        '<span class="type">' + entryType.tabLabel + '</span>' +
-        '<span>' + entry.code.length + lenUnit + ' ・ ' + formatTime(entry.ts) + '</span>';
-      rowTop.appendChild(meta);
-
-      var actions = document.createElement("div");
-      actions.className = "actions";
-
-      var copyBtn = document.createElement("button");
-      copyBtn.title = "コピー";
-      copyBtn.innerHTML = iconCopy();
-      copyBtn.onclick = function(){ copyText(entry.code, copyBtn); };
-      actions.appendChild(copyBtn);
-
-      var delBtn = document.createElement("button");
-      delBtn.className = "del";
-      delBtn.title = "削除";
-      delBtn.innerHTML = iconTrash();
-      delBtn.onclick = function(){
-        history = history.filter(function(h){ return h.id !== entry.id; });
-        saveHistory();
-        renderAll();
-      };
-      actions.appendChild(delBtn);
-
-      rowTop.appendChild(actions);
-      item.appendChild(rowTop);
-
-      var barcodeWrap = document.createElement("div");
-      barcodeWrap.className = "barcode-wrap";
-      var svg = renderBarcodeSVG(entry.code, entryType.jsbarcodeFormat);
-      if(svg) barcodeWrap.appendChild(svg);
-      item.appendChild(barcodeWrap);
-
-      var codeEl = document.createElement("div");
-      codeEl.className = "code";
-      codeEl.textContent = entry.code;
-      item.appendChild(codeEl);
-
-      elHistoryList.appendChild(item);
-    });
-  }
-
-  function renderAll(){
-    renderCurrentCard();
-    renderHistoryList();
-  }
-
   function formatTime(ts){
     var d = new Date(ts);
     var now = new Date();
     var pad = function(n){ return String(n).padStart(2,"0"); };
-    
+
     var isToday = d.getFullYear() === now.getFullYear() &&
                   d.getMonth() === now.getMonth() &&
                   d.getDate() === now.getDate();
@@ -1054,24 +868,104 @@
     }
   }
 
-  function copyText(text, btn, labelWhenIcon){
-    navigator.clipboard.writeText(text).then(function(){
-      if(btn.tagName === "BUTTON" && btn.textContent && !btn.querySelector("svg")){
-        var original = btn.textContent;
-        btn.textContent = labelWhenIcon || "コピー済み";
-        setTimeout(function(){ btn.textContent = original; }, 1200);
-      }else{
-        btn.classList.add("copied");
-        setTimeout(function(){ btn.classList.remove("copied"); }, 900);
-      }
-    }).catch(function(){ /* クリップボード権限なしは無視 */ });
-  }
-
   function iconCopy(){
     return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
   }
   function iconTrash(){
     return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>';
+  }
+
+  function copyText(text, btn){
+    navigator.clipboard.writeText(text).then(function(){
+      btn.classList.add("copied");
+      setTimeout(function(){ btn.classList.remove("copied"); }, 900);
+    }).catch(function(){ /* クリップボード権限なしは無視 */ });
+  }
+
+  // ① 全てのコードを同じカード形式で下の一覧に並べる。
+  //   新規登録された(=lastFlashIdsに含まれる)カードだけ、生成時に class="flash" を
+  //   付与することで、赤いスキャンラインのアニメーションを再生する。
+  function createCard(entry){
+    var type = BARCODE_TYPES[entry.type];
+    if(!type) return null;
+
+    var card = document.createElement("div");
+    card.className = "code-card type-" + type.id + (lastFlashIds.has(entry.id) ? " flash" : "");
+    card.dataset.id = entry.id;
+
+    var scanline = document.createElement("div");
+    scanline.className = "scanline";
+    card.appendChild(scanline);
+
+    var top = document.createElement("div");
+    top.className = "card-top";
+
+    var lenUnit = (type.kind === "code39" || type.kind === "ascii") ? "文字" : "桁";
+    var left = document.createElement("div");
+    left.style.display = "flex";
+    left.style.alignItems = "center";
+    left.style.gap = "6px";
+    left.style.minWidth = "0";
+    left.innerHTML =
+      '<span class="badge">' + type.tabLabel + '</span>' +
+      '<span class="meta">' + entry.code.length + lenUnit + ' ・ ' + formatTime(entry.ts) + '</span>';
+    top.appendChild(left);
+
+    var actions = document.createElement("div");
+    actions.className = "card-actions-icons";
+
+    var copyBtn = document.createElement("button");
+    copyBtn.title = "コピー";
+    copyBtn.innerHTML = iconCopy();
+    copyBtn.onclick = function(){ copyText(entry.code, copyBtn); };
+    actions.appendChild(copyBtn);
+
+    var delBtn = document.createElement("button");
+    delBtn.className = "del";
+    delBtn.title = "削除";
+    delBtn.innerHTML = iconTrash();
+    delBtn.onclick = function(){
+      history = history.filter(function(h){ return h.id !== entry.id; });
+      saveHistory();
+      renderAll();
+    };
+    actions.appendChild(delBtn);
+
+    top.appendChild(actions);
+    card.appendChild(top);
+
+    var stage = document.createElement("div");
+    stage.className = "barcode-stage";
+    var svg = renderBarcodeSVG(entry.code, type.jsbarcodeFormat);
+    if(svg) stage.appendChild(svg);
+    card.appendChild(stage);
+
+    var num = document.createElement("div");
+    num.className = "code-number";
+    num.textContent = entry.code;
+    card.appendChild(num);
+
+    return card;
+  }
+
+  function renderAll(){
+    elCodeGrid.innerHTML = "";
+    if(history.length === 0){
+      var empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.innerHTML =
+        '<div>' +
+        '<svg width="40" height="28" viewBox="0 0 40 28" fill="none"><rect x="0" y="0" width="2" height="28" fill="#17181a"/><rect x="4" y="0" width="1" height="28" fill="#17181a"/><rect x="7" y="0" width="3" height="28" fill="#17181a"/><rect x="12" y="0" width="1" height="28" fill="#17181a"/><rect x="15" y="0" width="2" height="28" fill="#17181a"/><rect x="19" y="0" width="1" height="28" fill="#17181a"/><rect x="22" y="0" width="3" height="28" fill="#17181a"/><rect x="27" y="0" width="1" height="28" fill="#17181a"/><rect x="30" y="0" width="2" height="28" fill="#17181a"/><rect x="34" y="0" width="1" height="28" fill="#17181a"/><rect x="37" y="0" width="3" height="28" fill="#17181a"/></svg>' +
+        "<p class='strong'>まだ生成したコードがありません</p>" +
+        "<p>種類タブを選び、コードを入力欄に入力・貼り付けして「一括登録」を押してください</p>" +
+        "</div>";
+      elCodeGrid.appendChild(empty);
+      return;
+    }
+    history.forEach(function(entry){
+      var card = createCard(entry);
+      if(card) elCodeGrid.appendChild(card);
+    });
   }
 
   function ingest(raw, source, opts){
@@ -1084,23 +978,18 @@
       return false;
     }
     if(history.length > 0 && history[0].code === result.code && history[0].type === currentType){
-      flashCard();
+      lastFlashIds.add(history[0].id);
       return true;
     }
-    history.unshift({ id: Date.now() + "-" + Math.random().toString(36).slice(2,7), code: result.code, type: currentType, ts: Date.now() });
+    var id = Date.now() + "-" + Math.random().toString(36).slice(2,7);
+    history.unshift({ id: id, code: result.code, type: currentType, ts: Date.now() });
+    lastFlashIds.add(id);
     if(history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
     saveHistory();
     return true;
   }
 
-  function flashCard(){
-    var card = document.getElementById("currentCard");
-    if(!card) return;
-    card.classList.remove("flash");
-    void card.offsetWidth;
-    card.classList.add("flash");
-  }
-
+  // ④ 登録してもテキストエリアは初期化しない(同じパターンで連続生成できるように)
   function processBatch(){
     var raw = elManualInput.value;
     var lines = raw.split(/\r?\n/);
@@ -1124,10 +1013,7 @@
     }
 
     renderAll();
-    if(successCount > 0){
-      flashCard();
-      elManualInput.value = "";
-    }
+    lastFlashIds.clear();
 
     if(failCount === 0){
       setStatus(successCount + "件登録しました");
@@ -1189,7 +1075,7 @@
 
   document.getElementById("clearAllBtn").addEventListener("click", function(){
     if(history.length === 0) return;
-    if(confirm(history.length + "件の履歴をすべて削除しますか？")){
+    if(confirm(history.length + "件の登録済みコードをすべて削除しますか？")){
       history = [];
       saveHistory();
       renderAll();
@@ -1198,6 +1084,7 @@
 
   renderTypeTabs();
   applyInputModeForType();
+  resetInputToDefault();
   renderAll();
 })();
 </script>
