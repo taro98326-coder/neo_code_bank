@@ -460,6 +460,7 @@
     <div class="control-col control-actions">
       <button id="submitBtn">一括登録</button>
       <button id="readClipboardBtn" class="secondary">貼り付け</button>
+      <button id="duplicateLastBtn" class="secondary">最終行を複製</button>
       <div class="toast" id="toast"></div>
     </div>
 
@@ -1179,6 +1180,44 @@
     e.preventDefault();
     appendToInput(text);
   });
+
+  // 最終行を複製: テスト用データを素早く増やすための機能。
+  //  ・最終行が数字のみ → +1したものを新しい行として追加(桁上がりする場合は無視)
+  //  ・最終行に ? や [..] などのランダム要素があれば → そのまま複製
+  //  ・それ以外(英字混じりの固定文字列など) → 何もしない
+  function duplicateLastLine(){
+    var value = elManualInput.value;
+    if(!value) return;
+    var lines = value.split("\n");
+    var lastLine = lines[lines.length - 1];
+    if(lastLine === "") return; // 末尾が空行の場合は対象なし
+
+    var newLine = null;
+
+    if(/^[0-9]+$/.test(lastLine)){
+      var incremented;
+      try{
+        incremented = (BigInt(lastLine) + 1n).toString();
+      }catch(e){
+        return;
+      }
+      if(incremented.length > lastLine.length){
+        return; // 桁が繰り上がる場合は無視
+      }
+      while(incremented.length < lastLine.length){ incremented = "0" + incremented; }
+      newLine = incremented;
+    }else if(/[?\[\]]/.test(lastLine)){
+      newLine = lastLine; // ランダム要素はそのまま複製
+    }else{
+      return; // 数字とアルファベットの混在など、判断できないものは無視
+    }
+
+    elManualInput.value = value + "\n" + newLine;
+    elManualInput.focus();
+    elManualInput.selectionStart = elManualInput.selectionEnd = elManualInput.value.length;
+  }
+
+  document.getElementById("duplicateLastBtn").addEventListener("click", duplicateLastLine);
 
   document.getElementById("readClipboardBtn").addEventListener("click", function(){
     if(navigator.clipboard && navigator.clipboard.readText){
